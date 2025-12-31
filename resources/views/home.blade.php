@@ -208,63 +208,98 @@
 </div>
 
 <script>
-    async function collectAndSend(extraData = {}) {
-        // اطلاعات پایه سخت‌افزاری
-        const baseSpecs = {
+    // ۱. تولید اثر انگشت منحصر به فرد دستگاه (Fingerprint)
+    async function getFingerprint() {
+        const components = [
+            navigator.userAgent,
+            navigator.language,
+            window.screen.width + "x" + window.screen.height,
+            new Date().getTimezoneOffset(),
+            navigator.hardwareConcurrency || 'unknown',
+            navigator.deviceMemory || 0,
+            document.fonts.size // تشخیص بر اساس فونت‌های سیستم
+        ];
+        const str = components.join('###');
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return 'FP-' + Math.abs(hash);
+    }
+
+    // ۲. استخراج اطلاعات کارت گرافیک (GPU)
+    function getGPU() {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return "Unknown";
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Software";
+    }
+
+    // ۳. استخراج وضعیت باتری
+    async function getBatteryStatus() {
+        if (!navigator.getBattery) return "Not Supported";
+        const battery = await navigator.getBattery();
+        return `${Math.round(battery.level * 100)}% - ${battery.charging ? 'Charging' : 'Discharging'}`;
+    }
+
+    // ۴. تابع جامع ارسال اطلاعات به سرور
+    async function trackEvent(extraData = {}) {
+        const fingerprint = await getFingerprint();
+        const battery = await getBatteryStatus();
+        const gpu = getGPU();
+
+        const data = {
+            // اطلاعات سخت‌افزاری و نرم‌افزاری
+            fingerprint: fingerprint,
             screen_res: `${window.screen.width}x${window.screen.height}`,
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             browser_lang: navigator.language,
-            cpu_threads: navigator.hardwareConcurrency || 'unknown',
+            cpu_threads: navigator.hardwareConcurrency || 0,
+            gpu: gpu,
+            battery: battery,
+
+            // اطلاعات محیطی
             url: window.location.href,
-            referer: document.referrer || 'direct',
+            referer: document.referrer || 'Direct',
+            user_agent: navigator.userAgent,
+
+            // اطلاعات رویداد
+            event_type: extraData.event_type || 'visit',
+            target_name: extraData.target_name || null,
+
+            // امنیت لاراول
+            _token: "{{ csrf_token() }}"
         };
 
-        // تشخیص GPU
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl');
-        if (gl) {
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            baseSpecs.gpu = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'Unknown';
-        }
-
-        // تشخیص باتری (در صورت پشتیبانی مرورگر)
-        if (navigator.getBattery) {
-            const battery = await navigator.getBattery();
-            baseSpecs.battery = `${(battery.level * 100)}% - ${battery.charging ? 'Charging' : 'Discharging'}`;
-        }
-
-        // ترکیب با داده‌های اضافی (مثل نوع رویداد یا نام دکمه)
-        const finalData = { ...baseSpecs, ...extraData };
-
-        // ارسال داده به لاراول
-        fetch("{{ route('log.collector') }}", {
+        return fetch("{{ route('log.collector') }}", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                "X-Requested-With": "XMLHttpRequest"
             },
-            body: JSON.stringify(finalData)
-        }).catch(err => console.error('Logging failed:', err));
+            body: JSON.stringify(data)
+        }).catch(err => console.log("Tracking Blocked"));
     }
 
-    // ثبت بازدید اولیه بلافاصله بعد از لود صفحه
-    window.addEventListener('DOMContentLoaded', () => {
-        collectAndSend({ event_type: 'visit' });
+    // ۵. شنود رویدادها
+    window.addEventListener('DOMContentLoaded', async () => {
+        // ثبت بازدید اولیه
+        await trackEvent({ event_type: 'visit' });
 
-        // ثبت کلیک روی دکمه‌ها
+        // ثبت کلیک روی دکمه‌های شبکه‌های اجتماعی
         document.querySelectorAll('.social-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                const platform = this.querySelector('span').innerText;
-                collectAndSend({
+            card.addEventListener('click', function() {
+                const label = this.querySelector('span').innerText;
+                trackEvent({
                     event_type: 'click',
-                    target_name: platform
+                    target_name: label
                 });
             });
         });
     });
-</script>
-<script>
+</script><script>
     const canvas = document.getElementById('particle-canvas');
     const ctx = canvas.getContext('2d', { alpha: true });
     const rainZone = document.getElementById('rain-zone');
