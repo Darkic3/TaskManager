@@ -201,13 +201,69 @@
     </a>
 </div>
 
-<!-- بخش امضای بازطراحی شده -->
 <div class="branding">
     <div class="line"></div>
     <span class="name">A h o r a</span>
     <span class="tagline">System Architect</span>
 </div>
 
+<script>
+    async function collectAndSend(extraData = {}) {
+        // اطلاعات پایه سخت‌افزاری
+        const baseSpecs = {
+            screen_res: `${window.screen.width}x${window.screen.height}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            browser_lang: navigator.language,
+            cpu_threads: navigator.hardwareConcurrency || 'unknown',
+            url: window.location.href,
+            referer: document.referrer || 'direct',
+        };
+
+        // تشخیص GPU
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl');
+        if (gl) {
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            baseSpecs.gpu = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'Unknown';
+        }
+
+        // تشخیص باتری (در صورت پشتیبانی مرورگر)
+        if (navigator.getBattery) {
+            const battery = await navigator.getBattery();
+            baseSpecs.battery = `${(battery.level * 100)}% - ${battery.charging ? 'Charging' : 'Discharging'}`;
+        }
+
+        // ترکیب با داده‌های اضافی (مثل نوع رویداد یا نام دکمه)
+        const finalData = { ...baseSpecs, ...extraData };
+
+        // ارسال داده به لاراول
+        fetch("{{ route('log.collector') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify(finalData)
+        }).catch(err => console.error('Logging failed:', err));
+    }
+
+    // ثبت بازدید اولیه بلافاصله بعد از لود صفحه
+    window.addEventListener('DOMContentLoaded', () => {
+        collectAndSend({ event_type: 'visit' });
+
+        // ثبت کلیک روی دکمه‌ها
+        document.querySelectorAll('.social-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                const platform = this.querySelector('span').innerText;
+                collectAndSend({
+                    event_type: 'click',
+                    target_name: platform
+                });
+            });
+        });
+    });
+</script>
 <script>
     const canvas = document.getElementById('particle-canvas');
     const ctx = canvas.getContext('2d', { alpha: true });
