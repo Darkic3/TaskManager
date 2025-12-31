@@ -60,7 +60,7 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "platform": {
-            "php": "8.2.2"
+            "php": "8.2.19"
         },
         "allow-plugins": {
             "pestphp/pest-plugin": true,
