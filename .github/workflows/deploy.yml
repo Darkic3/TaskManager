@@ -23,3 +23,15 @@ jobs:
             cd ~/personal-os
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan cache:clear
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/personal-os/laravel-app
+            git pull origin main
+            cd ~/personal-os
+            docker compose exec -T app composer install --no-dev --optimize-autoloader
+            docker compose exec -T app php artisan migrate --force
