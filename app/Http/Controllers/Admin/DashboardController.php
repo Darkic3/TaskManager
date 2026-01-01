@@ -46,16 +46,14 @@ class DashboardController extends Controller
         $callback = function() use($logs, $columns) {
             $file = fopen('php://output', 'w');
 
-            // اضافه کردن BOM برای نمایش صحیح حروف در Excel
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // نوشتن سرتیترها
             fputcsv($file, $columns);
 
             foreach ($logs as $log) {
                 fputcsv($file, [
                     $log->id,
-                    $log->fingerprint, // کلید اصلی شناسایی فرد
+                    $log->fingerprint,
                     $log->ip_address,
                     $log->isp,
                     $log->country,
@@ -78,7 +76,7 @@ class DashboardController extends Controller
                     $log->method,
                     $log->user_id,
                     $log->user_agent,
-                    $log->created_at,
+                    jdate_format('Y/m/d H:i:s', strtotime($log->created_at)),
                 ]);
             }
             fclose($file);
