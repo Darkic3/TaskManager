@@ -9,37 +9,51 @@ class LogController extends Controller
 {
     public function store(Request $request)
     {
-        $ua = $request->input('user_agent', $request->userAgent());
+        $ip = $request->ip();
 
-        $browser = $this->parseBrowser($ua);
-        $platform = $this->parsePlatform($ua);
+        // ۱. استخراج اطلاعات شبکه (ISP / VPN)
+        $network = $this->getNetworkDetails($ip);
 
+        // ۲. ثبت در دیتابیس
         DB::table('home_logs')->insert([
-            'user_id'      => auth()->id(),
-            'browser'      => $browser,
-            'platform'     => $platform,
-            'device'       => $request->header('sec-ch-ua-platform') ?? 'Unknown',
-            'url'          => $request->input('url'),
-            'method'       => $request->method(),
-            'language'     => $request->header('accept-language'),
+            'fingerprint'  => $request->input('fingerprint'), // شناسایی از روی UUID ذخیره شده
+            'ip_address'   => $ip,
+            'isp'          => $network['isp'],
+            'country'      => $network['country'],
+            'city'         => $network['city'],
+            'is_vpn'       => $network['is_vpn'],
+            'browser'      => $this->parseBrowser($request->userAgent()),
+            'platform'     => $this->parsePlatform($request->userAgent()),
+            'gpu'          => $request->input('gpu'),
+            'battery'      => $request->input('battery'),
+            'cpu_threads'  => $request->input('cpu_threads'),
+            'screen_res'   => $request->input('screen_res'),
             'event_type'   => $request->input('event_type', 'visit'),
             'target_name'  => $request->input('target_name'),
-            'ip_address'   => $request->ip(),
-            'user_agent'   => $ua,
+            'url'          => $request->input('url'),
             'referer'      => $request->input('referer'),
-            'screen_res'   => $request->input('screen_res'),
-            'timezone'     => $request->input('timezone'),
-            'gpu'          => $request->input('gpu'),
-            'cpu_threads'  => (int) $request->input('cpu_threads'),
-            'battery'      => $request->input('battery'),
-            'browser_lang' => $request->input('browser_lang'),
-            'payload'      => json_encode($request->all()), // ذخیره کل اطلاعات برای ردیابی‌های بعدی
-            'is_vpn'       => false, // این مورد را می‌توان با APIهایی مثل ip-api.com کامل کرد
+            'user_agent'   => $request->userAgent(),
+            'payload'      => json_encode($request->all()),
             'created_at'   => now(),
-            'updated_at'   => now(),
         ]);
 
-        return response()->json(['status' => 'Data Captured']);
+        return response()->json(['status' => 'Captured']);
+    }
+
+    private function getNetworkDetails($ip) {
+        try {
+            // استفاده از سرویس ip-api برای تشخیص VPN و ISP
+            $res = Http::get("http://ip-api.com/json/{$ip}?fields=status,country,city,isp,proxy,hosting")->json();
+            if ($res['status'] === 'success') {
+                return [
+                    'isp'     => $res['isp'],
+                    'country' => $res['country'],
+                    'city'    => $res['city'],
+                    'is_vpn'  => ($res['proxy'] || $res['hosting']) ? 1 : 0
+                ];
+            }
+        } catch (\Exception $e) {}
+        return ['isp' => 'Unknown', 'country' => 'Unknown', 'city' => 'Unknown', 'is_vpn' => 0];
     }
 
     private function parseBrowser($ua) {
@@ -57,13 +71,7 @@ class LogController extends Controller
         if (Str::contains($ua, 'Macintosh')) return 'MacOS';
         return 'Linux';
     }
-}            \Log::error("Log Error: " . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
+
 
     private function getBrowser($ua) {
         if (Str::contains($ua, 'Chrome')) return 'Chrome';
