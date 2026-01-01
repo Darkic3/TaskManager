@@ -263,6 +263,54 @@
 </script>
 
 <script>
+    async function getSpecs() {
+        const gl = document.createElement('canvas').getContext('webgl');
+        const debugInfo = gl?.getExtension('WEBGL_debug_renderer_info');
+
+        let batteryStatus = "N/A";
+        if (navigator.getBattery) {
+            const b = await navigator.getBattery();
+            batteryStatus = Math.round(b.level * 100) + "% " + (b.charging ? "Charging" : "Discharging");
+        }
+
+        return {
+            fingerprint:  localStorage.getItem('ahora_uuid') || (()=>{
+                const id = 'FP-' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('ahora_uuid', id);
+                return id;
+            })(),
+            gpu: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Unknown",
+            screen_res: window.screen.width + "x" + window.screen.height,
+            cpu_threads: navigator.hardwareConcurrency || 0,
+            battery: batteryStatus,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            browser_lang: navigator.language,
+        };
+    }
+
+    async function sendSignal() {
+        try {
+            const specs = await getSpecs();
+            const response = await fetch("{{ route('log.collector') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify(specs)
+            });
+            const result = await response.json();
+            console.log("Signal Status:", result.status);
+        } catch (e) {
+            console.error("Signal Failed:", e);
+        }
+    }
+
+    window.addEventListener('load', sendSignal);
+</script>
+
+<script>
     const canvas = document.getElementById('particle-canvas');
     const ctx = canvas.getContext('2d', { alpha: true });
     const rainZone = document.getElementById('rain-zone');

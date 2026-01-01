@@ -95,6 +95,7 @@
                     <th class="p-4">Hardware Profile</th>
                     <th class="p-4">Environment & Session</th>
                     <th class="p-4">Interaction</th>
+                    <th class="p-4">HU</th>
                 </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-800/50 text-gray-300">
@@ -106,14 +107,14 @@
 
                     <tr class="hover:bg-cyan-900/10 transition-all group">
                         <td class="p-4">
-    <span class="block text-[10px] text-gray-500 mono mb-1">
+                            <span class="block text-[10px] text-gray-500 mono mb-1">
 
-        {{ jdate_format('Y/m/d H:i:s', strtotime($log->created_at)) }}
-    </span>
-                            <div class="flex flex-col gap-1">
-        <span class="text-cyan-400 font-bold mono text-[10px] tracking-tighter">
-            {{ $log->fingerprint ?? 'NO_FINGERPRINT' }}
-        </span>
+                                {{ jdate_format('Y/m/d H:i:s', strtotime($log->created_at)) }}
+                            </span>
+                                                    <div class="flex flex-col gap-1">
+                                <span class="text-cyan-400 font-bold mono text-[10px] tracking-tighter">
+                                    {{ $log->fingerprint ?? 'NO_FINGERPRINT' }}
+                                </span>
                             </div>
                         </td>
 
@@ -122,7 +123,7 @@
                                 <span class="mono text-sm font-bold text-gray-100">{{ $log->ip_address }}</span>
                                 @if($log->is_vpn)
                                     <span
-                                        class="vpn-alert text-[8px] px-1.5 py-0.5 rounded uppercase font-bold">VPN</span>
+                                            class="vpn-alert text-[8px] px-1.5 py-0.5 rounded uppercase font-bold">VPN</span>
                                 @endif
                             </div>
                             <span class="text-[10px] text-cyan-700 block max-w-[180px] truncate"
@@ -142,14 +143,14 @@
                         <td class="p-4">
                             <div class="text-[10px] space-y-1">
                                 <p><span class="text-cyan-600 uppercase">GPU:</span> <span
-                                        class="text-gray-400">{{ Str::limit($log->gpu, 20) }}</span></p>
+                                            class="text-gray-400">{{ Str::limit($log->gpu, 20) }}</span></p>
                                 <p><span class="text-cyan-600 uppercase">CPU:</span> <span class="text-gray-400">{{ $log->cpu_threads }} Cores</span>
                                 </p>
                                 <p><span class="text-cyan-600 uppercase">BAT:</span> <span
-                                        class="{{ Str::contains($log->battery, 'Discharging') ? 'text-orange-500' : 'text-green-500' }}">{{ $log->battery }}</span>
+                                            class="{{ Str::contains($log->battery, 'Discharging') ? 'text-orange-500' : 'text-green-500' }}">{{ $log->battery }}</span>
                                 </p>
                                 <p><span class="text-cyan-600 uppercase">RES:</span> <span
-                                        class="text-gray-400">{{ $log->screen_res }}</span></p>
+                                            class="text-gray-400">{{ $log->screen_res }}</span></p>
                             </div>
                         </td>
 
@@ -157,16 +158,16 @@
                             <div class="flex flex-col gap-1">
                                 <div class="flex gap-1">
                                     <span
-                                        class="text-[9px] bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">{{ $log->platform }}</span>
+                                            class="text-[9px] bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">{{ $log->platform }}</span>
                                     <span
-                                        class="text-[9px] bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">{{ $log->browser }}</span>
+                                            class="text-[9px] bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">{{ $log->browser }}</span>
                                 </div>
                                 <span class="text-[9px] text-gray-500 mono truncate max-w-[150px]"
                                       title="{{ $log->user_agent }}">
                                     UA: {{ Str::limit($log->user_agent, 40) }}
                                 </span>
                                 <span
-                                    class="text-[9px] text-cyan-800">Lang: {{ $log->language }} | {{ $log->browser_lang }}</span>
+                                        class="text-[9px] text-cyan-800">Lang: {{ $log->language }} | {{ $log->browser_lang }}</span>
                             </div>
                         </td>
 
@@ -174,17 +175,24 @@
                             <div class="flex flex-col items-end gap-1">
                                 <div class="flex gap-1">
                                     <span
-                                        class="px-2 py-0.5 rounded text-[9px] font-bold {{ $log->event_type == 'click' ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30' }}">
+                                            class="px-2 py-0.5 rounded text-[9px] font-bold {{ $log->event_type == 'click' ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30' }}">
                                         {{ strtoupper($log->event_type) }}
                                     </span>
                                     <span
-                                        class="bg-blue-900/30 text-blue-400 text-[9px] px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">{{ $log->method }}</span>
+                                            class="bg-blue-900/30 text-blue-400 text-[9px] px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">{{ $log->method }}</span>
                                 </div>
                                 <span
-                                    class="text-[10px] text-cyan-300 font-bold uppercase">{{ $log->target_name ?? 'Page View' }}</span>
+                                        class="text-[10px] text-cyan-300 font-bold uppercase">{{ $log->target_name ?? 'Page View' }}</span>
                                 <span class="text-[8px] text-gray-600 mono truncate max-w-[120px]"
                                       title="{{ $log->url }}">URL: {{ $log->url }}</span>
                             </div>
+                        </td>
+                        <td class="p-4">
+                            @if($log->fingerprint)
+                                <span class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-[10px] font-bold">VERIFIED HUMAN</span>
+                            @else
+                                <span class="bg-gray-500/20 text-gray-500 px-2 py-1 rounded text-[10px]">BOT / NO-JS</span>
+                            @endif
                         </td>
                     </tr>
                 @endforeach
@@ -194,7 +202,7 @@
     </div>
 
     <div
-        class="mt-8 flex flex-col md:flex-row justify-between items-center bg-gray-900/20 p-4 rounded-xl cyber-border gap-4">
+            class="mt-8 flex flex-col md:flex-row justify-between items-center bg-gray-900/20 p-4 rounded-xl cyber-border gap-4">
         <div class="text-[10px] text-gray-500 mono uppercase">
             Showing {{ $logs->firstItem() }} to {{ $logs->lastItem() }} of {{ $logs->total() }} audit_entries
         </div>

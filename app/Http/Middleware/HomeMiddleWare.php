@@ -9,30 +9,22 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HomeMiddleWare
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        $data = [
-            'user_id'    => auth()->id(),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'url'        => $request->fullUrl(),
-            'referer'    => $request->header('referer'),
-            'method'     => $request->method(),
-            'language'   => $request->header('accept-language'),
-            'payload'    => json_encode($request->except(['password', 'password_confirmation'])),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-
-        try {
-            DB::table('home_logs')->insert($data);
-        } catch (\Exception $e) {
-            report($e);
+        // فقط برای درخواست‌های اصلی صفحه (GET) لاگ اولیه ثبت شود
+        if ($request->isMethod('GET')) {
+            $logId = DB::table('home_logs')->insertGetId([
+                'ip_address'   => $request->ip(),
+                'user_agent'   => $request->userAgent(),
+                'method'       => $request->method(),
+                'url'          => $request->fullUrl(),
+                'referer'      => $request->header('referer'),
+                'language'     => $request->header('accept-language'),
+                'event_type'   => 'visit',
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+            session(['last_visit_id' => $logId]);
         }
 
         return $next($request);
