@@ -19,4 +19,44 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', compact('logs', 'totalVisits', 'totalClicks', 'topBrowser'));
     }
+
+    public function export()
+    {
+        $fileName = 'logs_' . now()->format('Y-m-d') . '.csv';
+        $logs = \App\Models\HomeLog::all();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = ['ID', 'IP', 'ISP', 'Country', 'City', 'Browser', 'OS', 'GPU', 'Battery', 'Event', 'Target', 'Time'];
+
+        $callback = function() use($logs, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            foreach ($logs as $log) {
+                fputcsv($file, [
+                    $log->id,
+                    $log->ip_address,
+                    $log->isp,
+                    $log->country,
+                    $log->city,
+                    $log->browser,
+                    $log->platform,
+                    $log->gpu,
+                    $log->battery,
+                    $log->event_type,
+                    $log->target_name,
+                    $log->created_at,
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

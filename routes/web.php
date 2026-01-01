@@ -8,6 +8,9 @@ use App\Http\Controllers\LogController;
 Route::get('/ic3-1311', [DashboardController::class, 'index'])->name('admin.dashboard');
 Route::post('/log-collector', [LogController::class, 'store'])->name('log.collector');
 
-Route::middleware('HomeMiddleWare')->name('site.')->group(function () {
-    Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::middleware('HomeMiddleWare')->group(function () {
+    Route::get('/', [HomeController::class, 'index'])->name('site.home');
+    Route::get('/admin/export-logs', [App\Http\Controllers\Admin\DashboardController::class, 'export'])->name('admin.export');
+    Route::get('/ic3-1311', [DashboardController::class, 'index'])->name('admin.dashboard');
+
 });

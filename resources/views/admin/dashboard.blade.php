@@ -47,6 +47,12 @@
             <h3 class="text-lg font-bold mono">100%</h3>
         </div>
     </div>
+    <a href="{{ route('admin.export') }}" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded flex items-center gap-2 transition-all shadow-lg shadow-green-900/20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        DOWNLOAD CSV REPORT
+    </a>
 
     <div class="cyber-border bg-gray-900/20 rounded-2xl overflow-hidden backdrop-blur-sm shadow-2xl">
         <div class="overflow-x-auto">
