@@ -10,6 +10,7 @@ Route::post('/log-collector', [LogController::class, 'store'])->name('log.collec
 
 Route::middleware('HomeMiddleWare')->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('site.home');
+    Route::get('/1', [HomeController::class, 'index1'])->name('site.home');
     Route::get('/admin/export-logs', [App\Http\Controllers\Admin\DashboardController::class, 'export'])->name('admin.export');
 
 });

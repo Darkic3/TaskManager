@@ -1,278 +1,307 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IC3 to Ahora | Morphing Core</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=JetBrains+Mono:wght@400&display=swap');
+@extends('layouts.site.main')
 
-        :root {
-            --ice-blue: #f0fdff;
-            --cyber-cyan: #00f3ff;
-            --deep-space: #010409;
-        }
+@push('styles')
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&family=JetBrains+Mono:wght@300;400&display=swap');
 
         body {
-            background-color: var(--deep-space);
             margin: 0;
-            height: 100vh;
+            padding: 0;
+            background-color: #010409;
             overflow: hidden;
-            font-family: 'Major Mono Display', monospace;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-        }
-
-        .ambient-env {
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(circle at 50% 50%, #0a223a 0%, #010409 100%);
-            z-index: 1;
-        }
-
-        .code-rain {
-            position: absolute;
-            color: rgba(0, 243, 255, 0.1);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        @keyframes rain-fall {
-            to { transform: translateY(110vh); opacity: 0; }
-        }
-
-        .canvas-wrapper {
-            position: relative;
-            z-index: 10;
+            background-color: #010409;
         }
 
         #particle-canvas {
-            /* حذف فیلتر سنگین برای افزایش سرعت */
-            cursor: crosshair;
-        }
-
-        .branding {
-            position: fixed;
-            bottom: 30px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            letter-spacing: 0.5rem;
-            color: rgba(0, 243, 255, 0.15);
-            text-transform: uppercase;
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        body::after {
-            content: "";
-            position: fixed;
+            position: absolute;
             inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.03) 50%);
-            z-index: 100;
-            background-size: 100% 4px;
+            z-index: 10;
+        }
+
+        /* اصلاح پوزیشن Overlay برای نمایش بهتر در موبایل و دسکتاپ */
+        .ui-overlay {
+            position: absolute;
+            bottom: 10%; /* تغییر از margin-top ثابت به فاصله از پایین */
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            pointer-events: none; /* کلیک‌ها از لایه عبور کنند مگر روی دکمه‌ها */
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            pointer-events: auto; /* فعال کردن کلیک روی دکمه‌ها */
+        }
+
+        .social-btn {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(8px);
+            color: #00f3ff;
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            transition: all 0.3s ease;
+        }
+
+        .social-btn:hover {
+            background: rgba(0, 243, 255, 0.15);
+            color: #fff;
+            border-color: #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .branding-footer {
+            opacity: 0.4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .brand-line {
+            width: 30px;
+            height: 1px;
+            background: #00f3ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-text {
+            color: #fff;
+            font-size: 9px;
+            letter-spacing: 0.8em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .vfx-overlay {
+            position: absolute;
+            inset: 0;
             pointer-events: none;
-            opacity: 0.3;
+            z-index: 30;
+            opacity: 0.05;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%);
+            background-size: 100% 4px;
+        }
+
+        .vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 31;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%);
         }
     </style>
-</head>
-<body>
+@endpush
 
-<div class="ambient-env"></div>
-<div id="rain-zone" class="fixed inset-0 pointer-events-none"></div>
+@section('content')
+    <div class="canvas-container">
+        <canvas id="particle-canvas"></canvas>
 
-<div class="canvas-wrapper">
-    <canvas id="particle-canvas"></canvas>
-</div>
+        <div class="ui-overlay">
+            <div class="social-links">
+                <a href="#" class="social-btn">TELEGRAM</a>
+                <a href="#" class="social-btn">INSTAGRAM</a>
+                <a href="#" class="social-btn">DISCORD</a>
+            </div>
 
-<div class="branding">
-    Developing by Ahora-Ic3
-</div>
+            <div class="branding-footer">
+                <div class="brand-line"></div>
+                <span class="brand-text">Digital Architect</span>
+            </div>
+        </div>
 
-<script>
-    const canvas = document.getElementById('particle-canvas');
-    const ctx = canvas.getContext('2d', { alpha: true });
-    const rainZone = document.getElementById('rain-zone');
+        <div class="vfx-overlay"></div>
+        <div class="vignette"></div>
+    </div>
+@endsection
 
-    let width, height;
-    let particles = [];
-    let isHovered = false;
-    let hitMask = null;
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let animationFrameId;
 
-    const symbols = [
-        '0xAF', 'NULL', '&&', '||', '=>', 'func', 'init', 'true', 'false', '01', 'root', 'sync',
-        'Δ', 'Ω', 'Ξ', 'Ψ', 'Σ', 'λ', 'θ', 'π', '¿', '⚡', '▒', '█',
-        'ice', 'core', 'head', 'frost', 'cold', 'zero', 'sub', 'ic3', 'glitch', 'error',
-        'x', '!', '?', '#', '*', '+', '-', '[ ]', '{ }', 'hash'
-    ];
+            const tiltRotation = -0.45;
+            const cosTilt = Math.cos(tiltRotation);
+            const sinTilt = Math.sin(tiltRotation);
 
-    // تعداد ذرات بهینه شده برای روانی کامل انیمیشن
-    const particleCount = 1000;
+            // اصلاح شد: تبدیل کاراکترهای HTML به کاراکترهای واقعی جاوااسکریپت
+            const codeSymbols = [
+                '0xAF', 'NULL', '&&', '||', '=>', 'func', 'init', '01', 'sync', 'Δ', 'Ω', 'Ξ', 'Ψ', 'Σ', 'λ',
+                '¿', '⚡', '▒', '█', 'ice', 'core', 'head', 'frost', 'cold', 'zero', 'ic3', 'glitch', 'error',
+                'ptr', 'void', 'main', 'root', 'sudo', 'kernel', 'db', 'async', 'wait', '< >', '#', '{-}', 'static', 'const'
+            ];
 
-    function resize() {
-        width = canvas.width = 1000; // ابعاد ثابت برای پایداری پرفورمنس
-        height = canvas.height = 400;
-        initParticles();
-    }
+            const resize = () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            };
 
-    function getPositionsFromText(text, fontSize) {
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = width;
-        tempCanvas.height = height;
+            window.addEventListener('resize', resize);
+            resize();
 
-        tempCtx.fillStyle = "white";
-        tempCtx.font = `bold ${fontSize}px 'Major Mono Display'`;
-        tempCtx.textAlign = "center";
-        tempCtx.textBaseline = "middle";
-        tempCtx.fillText(text, width / 2, height / 2);
-
-        const imageData = tempCtx.getImageData(0, 0, width, height);
-        const data = imageData.data;
-        const positions = [];
-
-        // گام ۳ پیکسل برای سرعت بالاتر در لود اولیه
-        for (let y = 0; y < height; y += 3) {
-            for (let x = 0; x < width; x += 3) {
-                const index = (y * width + x) * 4;
-                if (data[index + 3] > 128) {
-                    positions.push({ x, y });
+            class Star {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 1.5;
+                    this.blink = Math.random() * Math.PI;
+                }
+                draw(time) {
+                    const opacity = 0.1 + Math.abs(Math.sin(time * 0.001 + this.blink)) * 0.6;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.fillRect(this.x, this.y, this.size, this.size);
                 }
             }
-        }
-        return { positions, rawData: data };
-    }
 
-    class Particle {
-        constructor(pos1, pos2) {
-            this.ic3X = pos1.x;
-            this.ic3Y = pos1.y;
-            this.ahoraX = pos2.x;
-            this.ahoraY = pos2.y;
+            class RingParticle {
+                constructor() {
+                    this.init();
+                }
+                init() {
+                    const rand = Math.random();
+                    let r;
+                    if (rand < 0.3) r = 220 + Math.random() * 40;
+                    else if (rand < 0.7) r = 280 + Math.random() * 60;
+                    else r = 360 + Math.random() * 50;
 
-            this.x = this.ic3X + (Math.random() - 0.5) * 40;
-            this.y = this.ic3Y + (Math.random() - 0.5) * 40;
+                    this.radius = r;
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.speed = (0.0015 + Math.random() * 0.0025) * (300 / this.radius);
+                    this.char = codeSymbols[Math.floor(Math.random() * codeSymbols.length)];
+                    this.opacity = 0.2 + Math.random() * 0.7;
+                    this.fontSize = 8 + Math.random() * 8;
+                    this.isSpecial = Math.random() > 0.92;
+                }
+                update() {
+                    this.angle += this.speed;
+                }
+                isBehind() {
+                    return Math.sin(this.angle) < 0;
+                }
+                draw(centerX, centerY) {
+                    const rawX = Math.cos(this.angle) * this.radius;
+                    const rawY = Math.sin(this.angle) * this.radius * 0.35;
 
-            this.vx = (Math.random() - 0.5) * 12;
-            this.vy = (Math.random() - 0.5) * 12;
+                    const rotatedX = rawX * cosTilt - rawY * sinTilt;
+                    const rotatedY = rawX * sinTilt + rawY * cosTilt;
 
-            this.size = Math.random() * 6 + 3;
-            this.char = symbols[Math.floor(Math.random() * symbols.length)];
-            this.angle = 0;
-            this.spin = (Math.random() - 0.5) * 0.1;
+                    const x = centerX + rotatedX;
+                    const y = centerY + rotatedY;
+                    const sinA = Math.sin(this.angle);
+                    const zScale = 0.7 + (sinA + 1) * 0.3;
 
-            this.friction = 0.95;
-            this.ease = 0.06;
+                    const behind = sinA < 0;
+                    ctx.globalAlpha = behind ? this.opacity * 0.2 : this.opacity;
+                    ctx.fillStyle = behind ? '#1a3a5a' : (this.isSpecial ? '#ffffff' : '#4fc3f7');
+                    ctx.font = `${Math.floor(this.fontSize * zScale)}px 'JetBrains Mono', monospace`;
 
-            this.offset = Math.random() * 1000;
-            this.floatSpeed = 0.0015;
-            this.floatRange = 2;
-
-            this.color = Math.random() > 0.8 ? '#00f3ff' : (Math.random() > 0.5 ? '#f0fdff' : '#a5f3fc');
-        }
-
-        update(time) {
-            const targetX = isHovered ? this.ahoraX : this.ic3X;
-            const targetY = isHovered ? this.ahoraY : this.ic3Y;
-
-            if (isHovered) {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vx *= this.friction;
-                this.vy *= this.friction;
-
-                this.x += (targetX - this.x) * (this.ease * 0.4);
-                this.y += (targetY - this.y) * (this.ease * 0.4);
-            } else {
-                const driftX = Math.sin(time * this.floatSpeed + this.offset) * this.floatRange;
-                const driftY = Math.cos(time * this.floatSpeed + this.offset) * this.floatRange;
-
-                this.x += (targetX + driftX - this.x) * this.ease;
-                this.y += (targetY + driftY - this.y) * this.ease;
-
-                if(Math.abs(this.x - targetX) < 1) {
-                    this.vx = (Math.random() - 0.5) * 15;
-                    this.vy = (Math.random() - 0.5) * 15;
+                    ctx.fillText(this.char, x, y);
                 }
             }
-        }
 
-        draw() {
-            ctx.fillStyle = isHovered ? '#00f3ff' : this.color;
-            ctx.fillText(this.char, this.x, this.y);
-        }
-    }
+            const stars = Array.from({ length: 150 }, () => new Star());
+            const ringParticles = Array.from({ length: 600 }, () => new RingParticle());
 
-    function initParticles() {
-        const ic3Data = getPositionsFromText("ic3", 300);
-        const ahoraData = getPositionsFromText("Ahora", 260);
+            let lastLogoSize = 0;
+            let ic3Grad, glowGrad;
 
-        hitMask = ic3Data.rawData;
+            const drawLogo = (centerX, centerY) => {
+                const ic3Size = window.innerWidth < 768 ? 90 : 150;
 
-        particles = [];
-        for (let i = 0; i < particleCount; i++) {
-            const p1 = ic3Data.positions[Math.floor(Math.random() * ic3Data.positions.length)];
-            const p2 = ahoraData.positions[Math.floor(Math.random() * ahoraData.positions.length)];
+                if (lastLogoSize !== ic3Size) {
+                    ic3Grad = ctx.createLinearGradient(centerX, centerY - 60, centerX, centerY + 20);
+                    ic3Grad.addColorStop(0, '#ffffff');
+                    ic3Grad.addColorStop(1, '#42a5f5');
 
-            if (p1 && p2) {
-                particles.push(new Particle(p1, p2));
-            }
-        }
-        ctx.font = "400 14px 'JetBrains Mono'"; // تنظیم فونت ثابت برای کل ذرات برای سرعت بیشتر
-    }
+                    glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, ic3Size * 1.5);
+                    glowGrad.addColorStop(0, 'rgba(0, 243, 255, 0.1)');
+                    glowGrad.addColorStop(1, 'transparent');
+                    lastLogoSize = ic3Size;
+                }
 
-    function animate(time) {
-        ctx.clearRect(0, 0, width, height);
-        for (let i = 0; i < particles.length; i++) {
-            particles[i].update(time);
-            particles[i].draw();
-        }
-        requestAnimationFrame(animate);
-    }
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
 
-    canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        // محاسبه مقیاس در صورتی که کانواس ریسپانسیو باشد
-        const scaleX = width / rect.width;
-        const scaleY = height / rect.height;
-        const mouseX = Math.floor((e.clientX - rect.left) * scaleX);
-        const mouseY = Math.floor((e.clientY - rect.top) * scaleY);
+                // افکت هاله نور دور متن
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = glowGrad;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, ic3Size * 1.5, 0, Math.PI * 2);
+                ctx.fill();
 
-        if (mouseX >= 0 && mouseX < width && mouseY >= 0 && mouseY < height) {
-            const index = (mouseY * width + mouseX) * 4;
-            isHovered = hitMask && hitMask[index + 3] > 10;
-        } else {
-            isHovered = false;
-        }
-    });
+                // متن اصلی Ic3
+                ctx.font = `900 ${ic3Size}px 'Inter', sans-serif`;
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = 'rgba(0, 243, 255, 0.4)';
+                ctx.fillStyle = ic3Grad;
+                ctx.fillText("Ic3", centerX, centerY - 10);
 
-    canvas.addEventListener('mouseleave', () => isHovered = false);
+                // متن ثانویه HEAD
+                ctx.shadowBlur = 0;
+                const headSize = Math.floor(ic3Size * 0.22);
+                ctx.font = `300 ${headSize}px 'JetBrains Mono', monospace`;
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.8)';
+                ctx.fillText("HEAD", centerX, centerY + (ic3Size * 0.45));
+            };
 
-    function initRain() {
-        rainZone.innerHTML = '';
-        for (let i = 0; i < 30; i++) {
-            const drop = document.createElement('div');
-            drop.className = 'code-rain';
-            drop.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-            drop.style.left = Math.random() * 100 + 'vw';
-            drop.style.animation = `rain-fall ${Math.random() * 3 + 3}s linear infinite`;
-            drop.style.animationDelay = Math.random() * 5 + 's';
-            rainZone.appendChild(drop);
-        }
-    }
+            const animate = (time) => {
+                // پاک کردن صفحه
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#010409';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    resize();
-    requestAnimationFrame(animate);
-    initRain();
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
 
-    document.addEventListener('mousemove', (e) => {
-        const x = (window.innerWidth / 2 - e.pageX) / 100;
-        const y = (window.innerHeight / 2 - e.pageY) / 100;
-        canvas.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
-    });
-</script>
-</body>
-</html>
+                // ۱. رسم ستاره‌های پس‌زمینه
+                stars.forEach(s => s.draw(time));
+
+                // ۲. رسم ذراتی که پشت لوگو هستند
+                ringParticles.forEach(p => {
+                    if (p.isBehind()) {
+                        p.update();
+                        p.draw(centerX, centerY);
+                    }
+                });
+
+                // ۳. رسم لوگوی مرکزی
+                drawLogo(centerX, centerY);
+
+                // ۴. رسم ذراتی که جلوی لوگو هستند
+                ringParticles.forEach(p => {
+                    if (!p.isBehind()) {
+                        p.update();
+                        p.draw(centerX, centerY);
+                    }
+                });
+
+                animationFrameId = requestAnimationFrame(animate);
+            };
+
+            animate(0);
+        });
+    </script>
+@endpush

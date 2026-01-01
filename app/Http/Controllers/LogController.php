@@ -10,38 +10,32 @@ class LogController extends Controller
 {
     public function store(Request $request)
     {
-        $logId = session('last_visit_id');
+        $logId = session('last_log_id');
 
-        if (!$logId) {
-            return response()->json(['status' => 'No SessionFound'], 400);
-        }
+        if (!$logId) return response()->json(['error' => 'Session expired'], 400);
 
-        $ua = $request->userAgent();
-        $ip = $request->ip();
+        // دریافت اطلاعات ISP و مکان (در صورت نیاز)
+        $res = \Http::get("http://ip-api.com/json/{$request->ip()}?fields=status,country,city,isp,proxy,hosting")->json();
 
-        $network = $this->getNetworkDetails($ip);
-
-        DB::table('home_logs')->where('id', $logId)->update([
-            'fingerprint'  => $request->input('fingerprint'),
-            'isp'          => $network['isp'],
-            'country'      => $network['country'],
-            'city'         => $network['city'],
-            'is_vpn'       => $network['is_vpn'],
-            'browser'      => $this->parseBrowser($ua),
-            'platform'     => $this->parsePlatform($ua),
-            'gpu'          => $request->input('gpu'),
-            'battery'      => $request->input('battery'),
-            'cpu_threads'  => (int) $request->input('cpu_threads'),
-            'screen_res'   => $request->input('screen_res'),
-            'browser_lang' => $request->input('browser_lang'),
-            'timezone'     => $request->input('timezone'),
-            'payload'      => json_encode($request->all()),
+        \DB::table('home_logs')->where('id', $logId)->update([
+            'fingerprint'  => $request->fingerprint,
+            'gpu'          => $request->gpu,
+            'screen_res'   => $request->screen_res,
+            'cpu_threads'  => (int)$request->cpu_threads,
+            'battery'      => $request->battery,
+            'timezone'     => $request->timezone,
+            'browser_lang' => $request->browser_lang,
+            'isp'          => $res['isp'] ?? 'Unknown',
+            'country'      => $res['country'] ?? 'Unknown',
+            'city'         => $res['city'] ?? 'Unknown',
+            'is_vpn'       => (isset($res['proxy']) && ($res['proxy'] || $res['hosting'])) ? 1 : 0,
+            'event_type'   => $request->event_type ?? 'visit',
+            'target_name'  => $request->target_name ?? null,
             'updated_at'   => now(),
         ]);
 
-        return response()->json(['status' => 'Human Verified & Data Captured']);
+        return response()->json(['status' => 'Human Verified']);
     }
-
     private function getNetworkDetails($ip) {
         try {
             $res = Http::timeout(3)->get("http://ip-api.com/json/{$ip}?fields=status,country,city,isp,proxy,hosting")->json();

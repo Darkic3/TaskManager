@@ -11,7 +11,6 @@ class HomeMiddleWare
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // فقط برای درخواست‌های اصلی صفحه (GET) لاگ اولیه ثبت شود
         if ($request->isMethod('GET')) {
             $logId = DB::table('home_logs')->insertGetId([
                 'ip_address'   => $request->ip(),
